@@ -1,0 +1,21 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/json-log.json</file>
+
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <message/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_FILE" />
+    </root>
+</configuration>

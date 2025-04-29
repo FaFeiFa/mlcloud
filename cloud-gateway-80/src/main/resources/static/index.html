@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>知识库问答系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        }
+
+        .container {
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background: white;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            color: #1d1d1f;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 8px;
+            border: 1px solid #8a8a8e;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            resize: vertical;
+            transition: border 0.3s;
+        }
+
+        textarea:focus {
+            border-color: #007AFF;
+            outline: none;
+        }
+
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            background: #8cc8ff;
+            cursor: not-allowed;
+        }
+
+        .action-btn {
+            background: #1890ff;
+            margin-left: 8px;
+        }
+
+        .action-btn.success {
+            background: #52c41a !important;
+        }
+
+        .action-btn.error {
+            background: #ff4d4f !important;
+        }
+
+        .error {
+            color: #ff4d4f;
+            margin: 12px 0;
+            padding: 8px;
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+        }
+
+        .answer-card {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .markdown-body {
+            color: #2d2d2d;
+            line-height: 1.8;
+        }
+
+        .markdown-body pre {
+            background: #f6f8fa;
+            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid #e1e4e8;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="title">知识库问答系统</div>
+        <div class="action-group">
+            <button class="action-btn" onclick="handleAction('create')">创建集合</button>
+            <button class="action-btn" onclick="handleAction('add')">上传测试文件</button>
+            <button onclick="handleSubmit()" id="submitBtn">提交问题</button>
+        </div>
+    </div>
+
+    <textarea
+            id="questionInput"
+            placeholder="请输入您的问题，例如：如何实现分布式锁？"
+            onkeydown="handleKeyPress(event)"
+    ></textarea>
+
+    <div id="errorContainer"></div>
+    <div id="loading" style="display: none;">⏳ 加载中...</div>
+    <div id="answerContainer" class="answer-card markdown-body"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    // Markdown 解析配置
+    marked.setOptions({
+        breaks: true,
+        highlight: code => hljs.highlightAuto(code).value
+    });
+
+    // 提交问题逻辑
+    async function handleSubmit() {
+        const question = document.getElementById('questionInput').value.trim();
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const errorContainer = document.getElementById('errorContainer');
+        const answerContainer = document.getElementById('answerContainer');
+
+        if (!question) return;
+
+        try {
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            errorContainer.innerHTML = '';
+            answerContainer.innerHTML = '';
+
+            const response = await fetch(`/select?question=${encodeURIComponent(question)}`);
+            if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+            const markdownText = await response.text();
+            answerContainer.innerHTML = marked.parse(markdownText);
+        } catch (error) {
+            errorContainer.innerHTML = `<div class="error">${error.message}</div>`;
+        } finally {
+            submitBtn.disabled = false;
+            loading.style.display = 'none';
+        }
+    }
+
+    // 操作按钮逻辑
+    async function handleAction(type) {
+        const btn = event.target;
+        const originalText = btn.innerText;
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 处理中...';
+
+            const response = await fetch(`/${type}`, { method: 'GET' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            // 处理创建集合的布尔响应
+            if (type === 'create') {
+                const result = await response.json();
+                if (!result.success) throw new Error('集合创建失败');
+            }
+
+            btn.classList.add('success');
+            btn.innerHTML = '✅ 成功';
+        } catch (error) {
+            btn.classList.add('error');
+            btn.innerHTML = '❌ 失败';
+            document.getElementById('errorContainer').innerHTML =
+                `<div class="error">${error.message}</div>`;
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.className = 'action-btn';
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+    }
+
+    // 回车快捷键
+    function handleKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit();
+        }
+    }
+</script>
+
+<!-- 代码高亮 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+</body>
+</html>

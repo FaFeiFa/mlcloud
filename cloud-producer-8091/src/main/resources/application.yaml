@@ -1,0 +1,20 @@
+server:
+  port: 8091
+
+# Kafka服务器地址
+spring:
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+  data:
+    redis:
+      host: 192.168.234.120
+      port: 6379
+  kafka:
+    bootstrap-servers: 192.168.234.120:9092
+    # 生产者配置
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: 1

@@ -1,0 +1,11 @@
+spring:
+  cloud:
+    kubernetes:
+      discovery:
+        enabled: true
+  data:
+    redis:
+      host: 192.168.234.120
+      port: 6379
+server:
+  port: 8080
